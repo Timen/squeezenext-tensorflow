@@ -8,7 +8,7 @@ parser.add_argument('--model_dir', type=str, required=True,
                     help='Location of model_dir')
 parser.add_argument('--configuration', type=str, default="v_1_0_SqNxt_23",
                     help='Name of model config file')
-parser.add_argument('--train_batch_size', type=int, default=64,
+parser.add_argument('--batch_size', type=int, default=64,
                     help='Batch size during training')
 parser.add_argument('--num_examples_per_epoch', type=int, default=1300000,
                     help='Number of examples in one epoch')
@@ -21,7 +21,8 @@ parser.add_argument('--validation_file_pattern', type=str, required=True,
 parser.add_argument('--eval_after_training', type=bool, default=True,
                     help='Run one eval after the '
                          'training finishes.')
-
+parser.add_argument('--output_train_images', type=bool, default=True,
+                    help='Whether to save image summary during training (Warning: can lead to large event file sizes).')
 args = parser.parse_args()
 
 
@@ -30,15 +31,16 @@ def main(argv):
 
     config = configs[args.configuration]
     config["model_dir"] = args.model_dir
+    config["output_train_images"] = args.output_train_images
 
-    model = Model(config)
+    model = Model(config,args.batch_size)
 
     classifier = tf.estimator.Estimator(
         model_dir=args.model_dir,
         model_fn=model.model_fn,
         params=config)
     classifier.train(
-        input_fn=lambda: model.input_fn("",args.train_batch_size),
+        input_fn=lambda: model.input_fn(args.training_file_pattern),
         steps=1000)
 
 
