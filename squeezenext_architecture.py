@@ -55,7 +55,7 @@ class SqueezeNext(object):
         with tf.variable_scope("squeezenext"):
             # input convolution and pooling
             input_filters, input_kernel,input_stride = self.input_def
-            net = slim.conv2d(inputs, input_filters, input_kernel, stride=input_stride)
+            net = slim.conv2d(inputs, input_filters, input_kernel, stride=input_stride,scope="input_conv",padding="VALID")
             net = slim.max_pool2d(net, [3, 3], stride=2)
             # create block based network
             for block_idx,block_def in enumerate(self.block_defs):
@@ -65,14 +65,15 @@ class SqueezeNext(object):
                     # create seperate units inside a block
                     for unit_idx in range(0,units):
                         with tf.variable_scope("unit_{}".format(unit_idx)):
-                            if unit_idx != units-1:
+                            if unit_idx != 0:
                                 net,height_first_order = squeezenext_block(net,filters,1,height_first_order)
                                 continue
                             else:
-                                net,height_first_order = squeezenext_block(net, filters*stride, stride,height_first_order)
+                                net,height_first_order = squeezenext_block(net, filters, stride,height_first_order)
             # output conv and pooling
-            net = slim.conv2d(net, 128, [1,1])
-            net = tf.reduce_mean(net,axis=[1,2])
+            net = slim.conv2d(net, 128, [1,1],scope="output_conv")
+            net = slim.avg_pool2d(net, net.get_shape().as_list()[1:-1], stride=1,padding="VALID")
+            net = tf.squeeze(net,axis=[1,2])
             output = slim.fully_connected(net,self.num_classes,activation_fn=None,biases_initializer=None)
         return output
 

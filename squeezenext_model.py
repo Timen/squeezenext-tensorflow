@@ -3,6 +3,7 @@ slim = tf.contrib.slim
 import squeezenext_architecture as squeezenext
 from optimizer import PolyOptimizer
 import metrics
+import tools.model_stats as stats
 
 class Model(object):
     def __init__(self,config):
@@ -27,7 +28,7 @@ class Model(object):
         if training:
             optimizer = PolyOptimizer(params)
             train_op =  optimizer.optimize(loss,training)
-            return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+            return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op,training_hooks=[stats._ModelStats("squeezenext",params["model_dir"],features["image"].get_shape().as_list()[0])])
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions = {

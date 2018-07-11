@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -108,7 +109,7 @@ tf.app.flags.DEFINE_integer('train_shards', 1024,
 tf.app.flags.DEFINE_integer('validation_shards', 128,
                             'Number of shards in validation TFRecord files.')
 
-tf.app.flags.DEFINE_integer('num_threads', 8,
+tf.app.flags.DEFINE_integer('num_threads', 32,
                             'Number of threads to preprocess the images.')
 
 # The labels file contains a list of valid labels are held in this file.
