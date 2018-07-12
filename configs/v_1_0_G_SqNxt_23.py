@@ -6,5 +6,5 @@ training_params = {
     "block_defs":[(32,6,1),(64,6,2),(128,8,2),(256,1,2)],
     "input_def":(64,(7,7),2),
     "num_classes":1000,
-    "group_size": 1
+    "group_size":2
 }

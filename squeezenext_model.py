@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import tensorflow as tf
 
 slim = tf.contrib.slim
@@ -12,7 +14,7 @@ class Model(object):
         self.image_size = config["image_size"]
         self.num_classes = config["num_classes"]
         self.batch_size = batch_size
-        self.read_tf_records = ReadTFRecords(self.image_size, self.batch_size, self.num_classes, config["mean_value"])
+        self.read_tf_records = ReadTFRecords(self.image_size, self.batch_size, self.num_classes)
 
     def define_batch_size(self, features, labels):
         features = tools.define_first_dim(features, self.batch_size)
@@ -24,7 +26,7 @@ class Model(object):
 
     def model_fn(self, features, labels, mode, params):
         training = mode == tf.estimator.ModeKeys.TRAIN
-        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"])
+        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"], params["group_size"])
 
         with slim.arg_scope(squeezenext.squeeze_next_arg_scope(training)):
             predictions = model(features["image"], training)
@@ -38,14 +40,16 @@ class Model(object):
 
         loss = tf.losses.softmax_cross_entropy(labels["class_vec"], tf.expand_dims(predictions, axis=1))
 
-        top_1_accuracy_metric,top_1_accuracy = tools.metrics.top_k_accuracy(predictions, labels["class_idx"], 1)
-        top_5_accuracy_metric,top_5_accuracy = tools.metrics.top_k_accuracy(predictions, labels["class_idx"], 5)
+        top_1_accuracy_metric, top_1_accuracy = tools.metrics.top_k_accuracy(predictions,
+                                                                             tf.argmax(labels["class_vec"], axis=-1), 1)
+        top_5_accuracy_metric, top_5_accuracy = tools.metrics.top_k_accuracy(predictions,
+                                                                             tf.argmax(labels["class_vec"], axis=-1), 5)
         tf.summary.scalar("top_1_accuracy", top_1_accuracy)
         tf.summary.scalar("top_5_accuracy", top_5_accuracy)
 
         if training:
             optimizer = PolyOptimizer(params)
-            train_op = optimizer.optimize(loss, training)
+            train_op = optimizer.optimize(loss, training, params["total_steps"])
             if params["output_train_images"]:
                 tf.summary.image("training", features["image"])
             return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, training_hooks=[
@@ -56,4 +60,5 @@ class Model(object):
         if mode == tf.estimator.ModeKeys.EVAL:
             images_summary = tf.summary.image("validation", features["image"])
             return tf.estimator.EstimatorSpec(
-                mode, loss=loss, eval_metric_ops=metrics, evaluation_hooks=tf.train.SummarySaverHook(summary_op=images_summary))
+                mode, loss=loss, eval_metric_ops=metrics,
+                evaluation_hooks=[tf.train.SummarySaverHook(summary_op=images_summary, save_steps=100)])

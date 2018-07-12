@@ -1,39 +1,50 @@
+from __future__ import absolute_import
+
 import tensorflow as tf
 slim = tf.contrib.slim
 
 
+def get_or_create_global_step():
+    global_step = tf.train.get_global_step()
+    if global_step is None:
+        global_step = tf.train.create_global_step()
+    return global_step
+
+def warmup_phase(learning_rate_schedule,base_lr,warmup_steps,warmup_learning_rate):
+    global_step = tf.cast(get_or_create_global_step(),tf.float32)
+    if warmup_steps > 0:
+        if base_lr < warmup_learning_rate:
+            raise ValueError('learning_rate_base must be larger or equal to '
+                             'warmup_learning_rate.')
+        slope = (base_lr - warmup_learning_rate) / warmup_steps
+        warmup_rate = slope * global_step + warmup_learning_rate
+        learning_rate_schedule = tf.where(global_step < warmup_steps, warmup_rate,
+                                 learning_rate_schedule)
+    return learning_rate_schedule
 
 class PolyOptimizer(object):
     def __init__(self, training_params):
-        self.learning_rate = training_params["base_lr"]
-        self.decay_steps = 150136
+        self.base_lr = training_params["base_lr"]
         self.warmup_steps = 780
         self.warmup_learning_rate = 0.1
         self.power = 2.0
         self.end_learning_rate = 0.0000001
         self.momentum = 0.9
 
-    def optimize(self,loss, training):
-        global_step = tf.train.get_global_step()
-        if global_step is None:
-            global_step = tf.train.create_global_step()
-        learning_rate = tf.train.polynomial_decay(
-            learning_rate=self.learning_rate,
+    def optimize(self,loss, training,total_steps):
+        global_step = get_or_create_global_step()
+        learning_rate_schedule = tf.train.polynomial_decay(
+            learning_rate=self.base_lr,
             global_step=global_step,
-            decay_steps=self.decay_steps,
+            decay_steps=total_steps,
             end_learning_rate=self.end_learning_rate,
             power=self.power
         )
-        if self.warmup_steps > 0:
-            if  self.learning_rate < self.warmup_learning_rate:
-                raise ValueError('learning_rate_base must be larger or equal to '
-                                 'warmup_learning_rate.')
-            slope = (self.learning_rate - self.warmup_learning_rate) / self.warmup_steps
-            warmup_rate = slope * tf.cast(global_step,
-                                          tf.float32) + self.warmup_learning_rate
-            learning_rate = tf.where(global_step < self.warmup_steps, warmup_rate,
-                                     learning_rate)
-        optimizer = tf.train.MomentumOptimizer(learning_rate,self.momentum)
+        learning_rate_schedule = warmup_phase(learning_rate_schedule,self.base_lr, self.warmup_steps,self.warmup_learning_rate)
+        tf.summary.scalar("learning_rate",learning_rate_schedule)
+        optimizer = tf.train.MomentumOptimizer(learning_rate_schedule,self.momentum)
+        for var in tf.trainable_variables():
+            tf.summary.histogram(var.name,var)
         return slim.learning.create_train_op(loss,
                                     optimizer,
                             global_step=global_step,

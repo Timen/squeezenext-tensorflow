@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import tensorflow as tf
 
 def define_first_dim(tensor_dict,dim_size):

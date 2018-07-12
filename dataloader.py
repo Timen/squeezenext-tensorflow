@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import tensorflow as tf
 import multiprocessing
 
 
-def _parse_function(example_proto, image_size, num_classes,mean_value):
+def _parse_function(example_proto, image_size, num_classes,mean_value=[104,117,123]):
     schema = {
         'image/encoded': tf.FixedLenFeature([], dtype=tf.string,
                                             default_value=''),
@@ -14,20 +16,23 @@ def _parse_function(example_proto, image_size, num_classes,mean_value):
                                                default_value=''),
     }
 
+    image_size = tf.cast(image_size,tf.int32)
+    mean_value = tf.cast(tf.stack(mean_value),tf.float32)
     parsed_features = tf.parse_single_example(example_proto, schema)
     jpeg_image = parsed_features["image/encoded"]
+    image_height = tf.cast(parsed_features["image/height"],tf.int32)[0]
+    image_width =  tf.cast(parsed_features["image/width"],tf.int32)[0]
+    crop_height = tf.clip_by_value(image_size,0,image_height)
+    crop_width = tf.clip_by_value(image_size,0,image_width)
+    crop_ymin = tf.abs(image_height / 2 - (crop_height / 2))
+    crop_xmin = tf.abs(image_width / 2 - (crop_width / 2))
 
-    crop_height = (image_size - tf.abs(parsed_features["image/height"] - image_size))
-    crop_width = (image_size - tf.abs(parsed_features["image/width"] - image_size))
-    crop_ymin = parsed_features["image/height"] / 2 - (crop_height / 2)
-    crop_xmin = parsed_features["image/width"] / 2 - (crop_width / 2)
-
-    crop_window = tf.cast(tf.concat([crop_ymin, crop_xmin, crop_height, crop_width],axis=0),tf.int32)
+    crop_window = tf.stack([crop_ymin, crop_xmin, crop_height, crop_width])
     image = tf.image.decode_and_crop_jpeg(
         jpeg_image,
         crop_window,
     )
-    image = tf.cond(tf.logical_or(crop_height[0] < image_size, crop_width[0] < image_size),
+    image = tf.cond(tf.logical_or(crop_height < image_size, crop_width < image_size),
                     lambda: tf.image.resize_images(image, [image_size, image_size]), lambda: tf.cast(image,tf.float32))
     image = image - mean_value
     label_idx = tf.cast(parsed_features['image/class/label'], dtype=tf.int32)
@@ -37,21 +42,20 @@ def _parse_function(example_proto, image_size, num_classes,mean_value):
 
 
 class ReadTFRecords(object):
-    def __init__(self, image_size, batch_size, num_classes,mean_value):
+    def __init__(self, image_size, batch_size, num_classes):
         self.image_size = image_size
         self.batch_size = batch_size
         self.num_classes = num_classes
-        self.mean_value = tf.cast(tf.stack(mean_value),tf.float32)
 
-    def __call__(self, glob_pattern, shuffle_buffer_size=4096):
+    def __call__(self, glob_pattern):
         threads = multiprocessing.cpu_count()
-
-        files = tf.data.Dataset.list_files(glob_pattern)
-        dataset = files.apply(tf.contrib.data.parallel_interleave(
-            tf.data.TFRecordDataset, cycle_length=threads * 2))
-        dataset = dataset.shuffle(buffer_size=shuffle_buffer_size)
-        dataset = dataset.map(map_func=lambda example: _parse_function(example, self.image_size, self.num_classes,self.mean_value),
-                              num_parallel_calls=threads * 2)
-        dataset = dataset.batch(batch_size=self.batch_size)
-        dataset = dataset.prefetch(buffer_size=16)
-        return dataset.make_one_shot_iterator()
+        with tf.name_scope("tf_record_reader"):
+            files = tf.data.Dataset.list_files(glob_pattern)
+            dataset = files.apply(tf.contrib.data.parallel_interleave(
+                tf.data.TFRecordDataset, cycle_length=threads * 2))
+            dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(16*self.batch_size))
+            dataset = dataset.map(map_func=lambda example: _parse_function(example, self.image_size, self.num_classes),
+                                  num_parallel_calls=threads * 2)
+            dataset = dataset.batch(batch_size=self.batch_size)
+            dataset = dataset.prefetch(buffer_size=16)
+            return dataset.make_one_shot_iterator()
