@@ -4,7 +4,7 @@ from configs import configs
 from squeezenext_model import Model
 import argparse
 import numpy as np
-import logging
+import tools
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--model_dir', type=str, required=True,
@@ -34,43 +34,54 @@ args = parser.parse_args()
 
 
 def main(argv):
-    del argv #not used
+    del argv  # not used
 
-    steps_per_epoch = (args.num_examples_per_epoch/args.batch_size)
+    steps_per_epoch = (args.num_examples_per_epoch / args.batch_size)
     config = configs[args.configuration]
     config["model_dir"] = args.model_dir
     config["output_train_images"] = args.output_train_images
-    config["total_steps"] = args.num_epochs*steps_per_epoch
+    config["total_steps"] = args.num_epochs * steps_per_epoch
 
-    model = Model(config,args.batch_size)
+    model = Model(config, args.batch_size)
 
     classifier = tf.estimator.Estimator(
         model_dir=args.model_dir,
         model_fn=model.model_fn,
         params=config)
-    tf.logging.info("Total steps = {}, num_epochs = {}, batch size = {}".format(config["total_steps"],args.num_epochs,args.batch_size))
-    classifier.train(
-        input_fn=lambda: model.input_fn(args.training_file_pattern),
-        steps=1)
-    last_step = 1
-    for epochs in np.linspace(args.eval_every_n_epochs, args.num_epochs,num=args.num_epochs/args.eval_every_n_epochs, endpoint=True):
+    tf.logging.info("Total steps = {}, num_epochs = {}, batch size = {}".format(config["total_steps"], args.num_epochs,
+                                                                                args.batch_size))
+
+    last_step = tools.get_checkpoint_step(args.model_dir)
+    if last_step is None:
+        classifier.train(
+            input_fn=lambda: model.input_fn(args.training_file_pattern,True),
+            steps=1)
+        last_step = 1
+
+    for epochs in np.linspace(args.eval_every_n_epochs, args.num_epochs, num=args.num_epochs / args.eval_every_n_epochs,
+                              endpoint=True):
+        train_steps = int(epochs) * steps_per_epoch
+        if train_steps < last_step:
+            tf.logging.info(
+                "Skipping training iteration, checkpoint step further than train steps")
+            continue
         classifier.evaluate(
-            input_fn=lambda: model.input_fn(args.validation_file_pattern),
-            steps=args.num_eval_examples/args.batch_size)
-        train_steps = int(epochs)*steps_per_epoch
+            input_fn=lambda: model.input_fn(args.validation_file_pattern,False),
+            steps=args.num_eval_examples / args.batch_size)
+
         tf.logging.info(
-            "Running training from step = {} till step = {}".format(last_step,train_steps))
+            "Running training from step = {} till step = {}".format(last_step, train_steps))
 
         last_step = train_steps
         classifier.train(
-            input_fn=lambda: model.input_fn(args.training_file_pattern),
-            steps=train_steps)
+            input_fn=lambda: model.input_fn(args.training_file_pattern,True),
+            max_steps=train_steps)
     if args.eval_after_training:
         classifier.evaluate(
-            input_fn=lambda: model.input_fn(args.validation_file_pattern),
-            steps=args.num_eval_examples/args.batch_size)
+            input_fn=lambda: model.input_fn(args.validation_file_pattern,False),
+            steps=args.num_eval_examples / args.batch_size)
 
 
 if __name__ == '__main__':
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run(main)
+    tf.logging.set_verbosity(tf.logging.INFO)
+    tf.app.run(main)

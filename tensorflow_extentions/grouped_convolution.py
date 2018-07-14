@@ -60,9 +60,9 @@ def grouped_convolution(inputs,
 
     input_channels = inputs.get_shape().as_list()[-1]
     lowest_channels = min(input_channels, num_outputs)
-    assert lowest_channels%group_size == 0, "min(input_channels,output_channels)%group_size needs to be zero"
+    assert lowest_channels%group_size == 0, "the remainder of min(input_channels,output_channels)/group_size should be zero"
     number_of_groups = lowest_channels/group_size
-    assert max(input_channels, num_outputs)%number_of_groups == 0, "max(input_channels,output_channels)%group_size needs to be zero"
+    assert max(input_channels, num_outputs)%number_of_groups == 0, "the remainder of max(input_channels,output_channels)/group_size should be zero"
 
     with tf.variable_scope(scope, 'Conv', [inputs], reuse=reuse) as sc:
         if isinstance(kernel_size, collections.Iterable):

@@ -82,6 +82,8 @@ class _ModelStats(tf.train.SessionRunHook):
                 flops = ops.get_stats_for_node_def(graph, tensor.node_def, 'flops').value
                 if flops is not None:
                     stat_dict[base_name]["maccs"] += int(flops / 2 / self.batch_size)
+            elif name.endswith("biases"):
+                pass
             else:
                 print(name,tensor.type)
                 exit()

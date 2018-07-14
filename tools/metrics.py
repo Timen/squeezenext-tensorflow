@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-
+import tools
 import tensorflow as tf
 slim = tf.contrib.slim
 

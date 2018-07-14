@@ -7,7 +7,7 @@ import squeezenext_architecture as squeezenext
 from optimizer import PolyOptimizer
 from dataloader import ReadTFRecords
 import tools
-
+import os
 
 class Model(object):
     def __init__(self, config, batch_size):
@@ -21,8 +21,8 @@ class Model(object):
         labels = tools.define_first_dim(labels, self.batch_size)
         return (features, labels)
 
-    def input_fn(self, file_pattern):
-        return self.define_batch_size(*self.read_tf_records(file_pattern).get_next())
+    def input_fn(self, file_pattern,training):
+        return self.define_batch_size(*self.read_tf_records(file_pattern,training=training).get_next())
 
     def model_fn(self, features, labels, mode, params):
         training = mode == tf.estimator.ModeKeys.TRAIN
@@ -40,10 +40,8 @@ class Model(object):
 
         loss = tf.losses.softmax_cross_entropy(labels["class_vec"], tf.expand_dims(predictions, axis=1))
 
-        top_1_accuracy_metric, top_1_accuracy = tools.metrics.top_k_accuracy(predictions,
-                                                                             tf.argmax(labels["class_vec"], axis=-1), 1)
-        top_5_accuracy_metric, top_5_accuracy = tools.metrics.top_k_accuracy(predictions,
-                                                                             tf.argmax(labels["class_vec"], axis=-1), 5)
+        top_1_accuracy_metric, top_1_accuracy = tools.metrics.top_k_accuracy(predictions,labels["class_idx"], 1)
+        top_5_accuracy_metric, top_5_accuracy = tools.metrics.top_k_accuracy(predictions,labels["class_idx"], 5)
         tf.summary.scalar("top_1_accuracy", top_1_accuracy)
         tf.summary.scalar("top_5_accuracy", top_5_accuracy)
 
@@ -59,6 +57,10 @@ class Model(object):
         metrics = {"top_1_accuracy": top_1_accuracy_metric, "top_5_accuracy": top_5_accuracy_metric}
         if mode == tf.estimator.ModeKeys.EVAL:
             images_summary = tf.summary.image("validation", features["image"])
+            eval_summary_hook = tf.train.SummarySaverHook(
+                save_steps=100,
+                output_dir=os.path.join(params["model_dir"],"eval"),
+                summary_op=images_summary)
             return tf.estimator.EstimatorSpec(
                 mode, loss=loss, eval_metric_ops=metrics,
-                evaluation_hooks=[tf.train.SummarySaverHook(summary_op=images_summary, save_steps=100)])
+                evaluation_hooks=[eval_summary_hook])

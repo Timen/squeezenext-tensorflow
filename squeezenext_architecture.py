@@ -80,7 +80,7 @@ class SqueezeNext(object):
             net = slim.conv2d(net, 128, [1,1],scope="output_conv")
             net = slim.avg_pool2d(net, net.get_shape().as_list()[1:-1], stride=1,padding="VALID")
             net = tf.squeeze(net,axis=[1,2])
-            output = slim.fully_connected(net,self.num_classes,activation_fn=None,biases_initializer=None)
+            output = slim.fully_connected(net,self.num_classes,activation_fn=None)
         return output
 
 
@@ -105,7 +105,6 @@ def squeeze_next_arg_scope(is_training,
                         weights_initializer=weights_init,
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params,
-                        biases_initializer=None,
                         weights_regularizer=regularizer):
         with slim.arg_scope([slim.batch_norm], **batch_norm_params) as sc:
             return sc
