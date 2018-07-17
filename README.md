@@ -52,7 +52,7 @@ available on (http://academictorrents.com/) namely:
 [Validation Images](http://academictorrents.com/details/5d6d0df7ed81efd49ca99ea4737e0ae5e3a5f2e5/tech&dllist=1)
 and [Bounding Box Annotations](http://academictorrents.com/details/28202f4f8dde5c9b26d406f5522f8763713e605b/tech&dllist=1)
 
-Please note one should still abide by the original License agreement of the Imagenet dataset. After downloading these files please the following steps to prepare the dataset.
+Please note one should still abide by the original License agreement of the Imagenet dataset. After downloading these files please perform the following steps to prepare the dataset.
 
 - Create a directory used for processing and storing the dataset.
     Please note you should have at least around 500 GB of free space available on the drive you are processing the dataset. 
@@ -68,4 +68,5 @@ Please note one should still abide by the original License agreement of the Imag
 - Wait for processing to finish.
     The script process_downloaded_imagenet.sh will automatically extract the tarballs and process al the data into tf-records.
     The whole process can take between 2 and 5 hours depending on how fast the hard drive and cpu are.
-    
+  
+  
