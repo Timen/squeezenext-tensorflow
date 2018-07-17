@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-#!/bin/bash
+# This file is a modified version of the script found at:
+# https://github.com/tensorflow/models/blob/master/research/slim/datasets/download_and_convert_imagenet.sh
+# The modifications include removal of imagenet data downloads and different paths used for extraction and
+# output.
+
+
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +21,8 @@
 # limitations under the License.
 # ==============================================================================
 
-# Script to download ImageNet Challenge 2012 training and validation data set.
-#
-# Downloads and decompresses raw images and bounding boxes.
-#
-# **IMPORTANT**
-# To download the raw images, the user must create an account with image-net.org
-# and generate a username and access_key. The latter two are required for
-# downloading the raw images.
-#
 # usage:
-#  ./download_imagenet.sh [dirname]
+#  ./process_downloaded_imagenet.sh [OUTDIR]
 set -e
 
 
@@ -54,16 +50,17 @@ BOUNDING_BOX_FILE="${OUTDIR}/imagenet_2012_bounding_boxes.csv"
 BOUNDING_BOX_DIR="${OUTDIR}bounding_boxes/"
 "${BOUNDING_BOX_SCRIPT}" "${BOUNDING_BOX_DIR}" "${LABELS_FILE}" \
  | sort >"${BOUNDING_BOX_FILE}"
-# Download and uncompress all images from the ImageNet 2012 validation dataset.
+# Uncompress all images from the ImageNet 2012 validation dataset.
 VALIDATION_TARBALL="ILSVRC2012_img_val.tar"
 OUTPUT_PATH="${OUTDIR}validation/"
 mkdir -p "${OUTPUT_PATH}"
 tar xf "${VALIDATION_TARBALL}" -C "${OUTPUT_PATH}"
 
-# Download all images from the ImageNet 2012 train dataset.
+# Umcompress all images from the ImageNet 2012 train dataset.
 TRAIN_TARBALL="ILSVRC2012_img_train.tar"
 OUTPUT_PATH="${OUTDIR}train/"
-
+mkdir -p "${OUTPUT_PATH}"
+tar xf "${TRAIN_TARBALL}" -C "${OUTPUT_PATH}"
 
 # Un-compress the individual tar-files within the train tar-file.
 echo "Uncompressing individual train tar-balls in the training data."
@@ -100,7 +97,7 @@ echo "Finished downloading and preprocessing the ImageNet data."
 
 # Build the TFRecords version of the ImageNet data.
 BUILD_SCRIPT="${WORK_DIR}/datasets/build_imagenet_data.py"
-OUTPUT_DIRECTORY="${DATA_DIR}"
+OUTPUT_DIRECTORY="${OUTDIR}/tf-records/"
 IMAGENET_METADATA_FILE="${WORK_DIR}/datasets/imagenet_metadata.txt"
 
 "${BUILD_SCRIPT}" \

@@ -30,7 +30,7 @@ def grouped_convolution(inputs,
                 stride=1,
                 padding='SAME',
                 rate=1,
-                group_size=None,
+                groups=1,
                 activation_fn=tf.nn.relu,
                 normalizer_fn=None,
                 normalizer_params=None,
@@ -44,7 +44,7 @@ def grouped_convolution(inputs,
                 outputs_collections=None):
 
     # if no group size specified or less than/equal to zero return a normal convolution
-    if group_size is None or group_size == 1:
+    if groups == 1:
         return slim.conv2d(inputs, num_outputs, kernel_size,stride=stride,padding=padding,activation_fn=activation_fn,
                 normalizer_fn=normalizer_fn,
                 normalizer_params=normalizer_params,
@@ -56,19 +56,18 @@ def grouped_convolution(inputs,
                 trainable=trainable,
                 scope=scope)
 
-    assert group_size > 1, "Specify a group size greater than zero, group size given is {}".format(group_size)
-
+    assert groups > 1, "Specify a number of groups greater than zero, groups given is {}".format(group_size)
     input_channels = inputs.get_shape().as_list()[-1]
     lowest_channels = min(input_channels, num_outputs)
-    assert lowest_channels%group_size == 0, "the remainder of min(input_channels,output_channels)/group_size should be zero"
-    number_of_groups = lowest_channels/group_size
-    assert max(input_channels, num_outputs)%number_of_groups == 0, "the remainder of max(input_channels,output_channels)/group_size should be zero"
+    assert lowest_channels%groups == 0, "the remainder of min(input_channels,output_channels)/group_size should be zero"
+    group_size = lowest_channels/groups
+    assert max(input_channels, num_outputs)%group_size == 0, "the remainder of max(input_channels,output_channels)/group_size should be zero"
 
     with tf.variable_scope(scope, 'Conv', [inputs], reuse=reuse) as sc:
         if isinstance(kernel_size, collections.Iterable):
-            weights_shape = kernel_size+[input_channels/number_of_groups]+[num_outputs]
+            weights_shape = kernel_size+[group_size]+[num_outputs]
         else:
-            weights_shape = [kernel_size,kernel_size,input_channels/number_of_groups,num_outputs]
+            weights_shape = [kernel_size,kernel_size,group_size,num_outputs]
         weights = slim.variable('weights',
                                 shape=weights_shape,
                                 initializer=weights_initializer,
@@ -76,7 +75,7 @@ def grouped_convolution(inputs,
                                 device='/CPU:0')
         strides = [stride,stride]
         dilation_rate = [rate,rate]
-        outputs = grouped_convolution2D(inputs,weights,padding,number_of_groups,
+        outputs = grouped_convolution2D(inputs,weights,padding,groups,
                     strides=strides,
                     dilation_rate=dilation_rate)
         if biases_initializer is not None:

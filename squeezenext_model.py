@@ -3,16 +3,18 @@ from __future__ import absolute_import
 import tensorflow as tf
 
 slim = tf.contrib.slim
+metrics = tf.contrib.metrics
 import squeezenext_architecture as squeezenext
 from optimizer import PolyOptimizer
 from dataloader import ReadTFRecords
 import tools
 import os
+metrics = tf.contrib.metrics
 
 class Model(object):
     def __init__(self, config, batch_size):
         self.image_size = config["image_size"]
-        self.num_classes = config["num_classes"]
+        self.num_classes = config["num_classes"]+1
         self.batch_size = batch_size
         self.read_tf_records = ReadTFRecords(self.image_size, self.batch_size, self.num_classes)
 
@@ -39,11 +41,7 @@ class Model(object):
             return tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
         loss = tf.losses.softmax_cross_entropy(labels["class_vec"], tf.expand_dims(predictions, axis=1))
-
-        top_1_accuracy_metric, top_1_accuracy = tools.metrics.top_k_accuracy(predictions,labels["class_idx"], 1)
-        top_5_accuracy_metric, top_5_accuracy = tools.metrics.top_k_accuracy(predictions,labels["class_idx"], 5)
-        tf.summary.scalar("top_1_accuracy", top_1_accuracy)
-        tf.summary.scalar("top_5_accuracy", top_5_accuracy)
+        tf.summary.histogram("classes",labels["class_idx"])
 
         if training:
             optimizer = PolyOptimizer(params)
@@ -54,13 +52,19 @@ class Model(object):
                 tools.stats._ModelStats("squeezenext", params["model_dir"],
                                         features["image"].get_shape().as_list()[0])])
 
-        metrics = {"top_1_accuracy": top_1_accuracy_metric, "top_5_accuracy": top_5_accuracy_metric}
+
+
         if mode == tf.estimator.ModeKeys.EVAL:
-            images_summary = tf.summary.image("validation", features["image"])
+            # Define the metrics:
+            metrics_dict = {
+                'Accuracy': tf.metrics.accuracy(tf.argmax(predictions, axis=-1), labels["class_idx"][:, 0]),
+                'Recall@5': metrics.streaming_sparse_recall_at_k(predictions, tf.cast(labels["class_idx"], tf.int64),
+                                                                 5)
+            }
             eval_summary_hook = tf.train.SummarySaverHook(
                 save_steps=100,
                 output_dir=os.path.join(params["model_dir"],"eval"),
-                summary_op=images_summary)
+                summary_op=tf.summary.image("validation", features["image"]))
             return tf.estimator.EstimatorSpec(
-                mode, loss=loss, eval_metric_ops=metrics,
+                mode, loss=loss, eval_metric_ops=metrics_dict,
                 evaluation_hooks=[eval_summary_hook])

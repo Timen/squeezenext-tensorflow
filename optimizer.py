@@ -11,16 +11,17 @@ def get_or_create_global_step():
     return global_step
 
 def warmup_phase(learning_rate_schedule,base_lr,warmup_steps,warmup_learning_rate):
-    global_step = tf.cast(get_or_create_global_step(),tf.float32)
-    if warmup_steps > 0:
-        if base_lr < warmup_learning_rate:
-            raise ValueError('learning_rate_base must be larger or equal to '
-                             'warmup_learning_rate.')
-        slope = (base_lr - warmup_learning_rate) / warmup_steps
-        warmup_rate = slope * global_step + warmup_learning_rate
-        learning_rate_schedule = tf.where(global_step < warmup_steps, warmup_rate,
-                                 learning_rate_schedule)
-    return learning_rate_schedule
+    with tf.name_scope("warmup_learning_rate"):
+        global_step = tf.cast(get_or_create_global_step(),tf.float32)
+        if warmup_steps > 0:
+            if base_lr < warmup_learning_rate:
+                raise ValueError('learning_rate_base must be larger or equal to '
+                                 'warmup_learning_rate.')
+            slope = (base_lr - warmup_learning_rate) / warmup_steps
+            warmup_rate = slope * global_step + warmup_learning_rate
+            learning_rate_schedule = tf.where(global_step < warmup_steps, warmup_rate,
+                                     learning_rate_schedule)
+        return learning_rate_schedule
 
 class PolyOptimizer(object):
     def __init__(self, training_params):
@@ -28,27 +29,29 @@ class PolyOptimizer(object):
         self.warmup_steps = 780
         self.warmup_learning_rate = 0.1
         self.power = 2.0
-        self.end_learning_rate = 0.0000001
+        self.end_learning_rate = 1E-9
         self.momentum = 0.9
 
     def optimize(self,loss, training,total_steps):
-        global_step = get_or_create_global_step()
-        learning_rate_schedule = tf.train.polynomial_decay(
-            learning_rate=self.base_lr,
-            global_step=global_step,
-            decay_steps=total_steps,
-            end_learning_rate=self.end_learning_rate,
-            power=self.power
-        )
-        learning_rate_schedule = warmup_phase(learning_rate_schedule,self.base_lr, self.warmup_steps,self.warmup_learning_rate)
-        tf.summary.scalar("learning_rate",learning_rate_schedule)
-        optimizer = tf.train.MomentumOptimizer(learning_rate_schedule,self.momentum)
-        for var in tf.trainable_variables():
-            tf.summary.histogram(var.name,var)
-        return slim.learning.create_train_op(loss,
-                                    optimizer,
-                            global_step=global_step,
-                            update_ops=None if training else [])
+        with tf.name_scope("PolyOptimizer"):
+            global_step = get_or_create_global_step()
+
+            learning_rate_schedule = tf.train.polynomial_decay(
+                learning_rate=self.base_lr,
+                global_step=global_step,
+                decay_steps=total_steps,
+                end_learning_rate=self.end_learning_rate,
+                power=self.power
+            )
+            learning_rate_schedule = warmup_phase(learning_rate_schedule,self.base_lr, self.warmup_steps,self.warmup_learning_rate)
+            tf.summary.scalar("learning_rate",learning_rate_schedule)
+            optimizer = tf.train.MomentumOptimizer(learning_rate_schedule,self.momentum)
+            for var in tf.trainable_variables():
+                tf.summary.histogram(var.name,var)
+            return slim.learning.create_train_op(loss,
+                                        optimizer,
+                                global_step=global_step,
+                                update_ops=None if training else [])
 
 
 

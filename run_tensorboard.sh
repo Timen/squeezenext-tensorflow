@@ -7,4 +7,4 @@ docker run -it -p 6006:6006  \
 -v $(pwd):/usr/local/src/ \
 -v $MODELS:$MODELS \
 -v $DATASETS:$DATASETS \
-tensorflow/tensorflow bash
+tensorflow/tensorflow python -m tensorboard.main --logdir=$MODELS

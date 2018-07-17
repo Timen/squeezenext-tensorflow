@@ -5,6 +5,7 @@ from squeezenext_model import Model
 import argparse
 import numpy as np
 import tools
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--model_dir', type=str, required=True,

@@ -53,7 +53,8 @@ def _parse_function(example_proto, image_size, num_classes,training,mean_value=(
     else:
         raise("unknown image process method")
     image = image - mean_value
-    label_idx = tf.cast(parsed_features['image/class/label'], dtype=tf.int32)-1
+    image = image/127.5
+    label_idx = tf.cast(parsed_features['image/class/label'], dtype=tf.int32)
     label_vec = tf.one_hot(label_idx, num_classes)
 
     return {"image": tf.reshape(image,[image_size,image_size,3])}, {"class_idx": label_idx, "class_vec": label_vec}
@@ -68,12 +69,12 @@ class ReadTFRecords(object):
     def __call__(self, glob_pattern,training=True):
         threads = multiprocessing.cpu_count()
         with tf.name_scope("tf_record_reader"):
-            files = tf.data.Dataset.list_files(glob_pattern)
+            files = tf.data.Dataset.list_files(glob_pattern, shuffle=training)
             dataset = files.apply(tf.contrib.data.parallel_interleave(
-                tf.data.TFRecordDataset, cycle_length=threads * 2))
+                lambda filename: tf.data.TFRecordDataset(filename), cycle_length=threads*2))
             dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(16*self.batch_size))
             dataset = dataset.map(map_func=lambda example: _parse_function(example, self.image_size, self.num_classes,training=training),
                                   num_parallel_calls=threads * 2)
             dataset = dataset.batch(batch_size=self.batch_size)
-            dataset = dataset.prefetch(buffer_size=16)
+            dataset = dataset.prefetch(buffer_size=32)
             return dataset.make_one_shot_iterator()
