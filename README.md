@@ -58,10 +58,10 @@ Please note one should still abide by the original License agreement of the Imag
     Please note you should have at least around 500 GB of free space available on the drive you are processing the dataset. 
     Once this directory is created copy the 3 files downloaded earlier to the root of this directory from that directory execute
     the following command:
-      ```Shell
-      export DATA_DIR=$(pwd)
-      
-      ```
+  ```Shell
+     export DATA_DIR=$(pwd)
+     
+     ```
     
 
 - Execute the following command from this projects root folder:
