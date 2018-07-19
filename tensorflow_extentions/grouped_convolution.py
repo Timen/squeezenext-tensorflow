@@ -40,7 +40,7 @@ def grouped_convolution2D(inputs, filters, padding, num_groups,
             dilation_rate=dilation_rate,
             name="grouped_convolution" + "_{}".format(conv_idx)
         ))
-    # Concatenate ouptputs along there last dimentsion
+    # Concatenate ouptputs along their last dimentsion
     outputs = tf.concat(output_list, axis=-1)
 
     return outputs
