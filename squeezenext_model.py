@@ -5,7 +5,7 @@ import tensorflow as tf
 slim = tf.contrib.slim
 metrics = tf.contrib.metrics
 import squeezenext_architecture as squeezenext
-from optimizer import PolyOptimizer
+from optimizer  import PolyOptimizer
 from dataloader import ReadTFRecords
 import tools
 import os
@@ -14,7 +14,7 @@ metrics = tf.contrib.metrics
 class Model(object):
     def __init__(self, config, batch_size):
         self.image_size = config["image_size"]
-        self.num_classes = config["num_classes"]+1
+        self.num_classes = config["num_classes"]
         self.batch_size = batch_size
         self.read_tf_records = ReadTFRecords(self.image_size, self.batch_size, self.num_classes)
 
@@ -28,24 +28,26 @@ class Model(object):
 
     def model_fn(self, features, labels, mode, params):
         training = mode == tf.estimator.ModeKeys.TRAIN
-        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"], params["group_size"])
+        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"], params["groups"])
 
         with slim.arg_scope(squeezenext.squeeze_next_arg_scope(training)):
-            predictions = model(features["image"], training)
+            predictions,endpoints = model(features["image"], training)
         if mode == tf.estimator.ModeKeys.PREDICT:
             predictions = {
-                'class_ids': tf.argmax(predictions, -1),
+                'class_ids': tf.argmax(tf.nn.softmax(predictions), -1),
                 'probabilities': tf.nn.softmax(predictions),
                 'logits': predictions,
             }
             return tf.estimator.EstimatorSpec(mode, predictions=predictions)
 
-        loss = tf.losses.softmax_cross_entropy(labels["class_vec"], tf.expand_dims(predictions, axis=1))
+        loss = tf.losses.softmax_cross_entropy(tf.squeeze(labels["class_vec"],axis=1), predictions)
+
         tf.summary.histogram("classes",labels["class_idx"])
 
         if training:
             optimizer = PolyOptimizer(params)
             train_op = optimizer.optimize(loss, training, params["total_steps"])
+
             if params["output_train_images"]:
                 tf.summary.image("training", features["image"])
             return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, training_hooks=[

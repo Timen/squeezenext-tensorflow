@@ -24,3 +24,22 @@ def Print(tensor):
         return x
 
     return tf.py_func(my_func, [tensor], tensor.dtype)
+
+def get_or_create_global_step():
+    global_step = tf.train.get_global_step()
+    if global_step is None:
+        global_step = tf.train.create_global_step()
+    return global_step
+
+def warmup_phase(learning_rate_schedule,base_lr,warmup_steps,warmup_learning_rate):
+    with tf.name_scope("warmup_learning_rate"):
+        global_step = tf.cast(get_or_create_global_step(),tf.float32)
+        if warmup_steps > 0:
+            if base_lr < warmup_learning_rate:
+                raise ValueError('learning_rate_base must be larger or equal to '
+                                 'warmup_learning_rate.')
+            slope = (base_lr - warmup_learning_rate) / warmup_steps
+            warmup_rate = slope * global_step + warmup_learning_rate
+            learning_rate_schedule = tf.where(global_step < warmup_steps, warmup_rate,
+                                     learning_rate_schedule)
+        return learning_rate_schedule

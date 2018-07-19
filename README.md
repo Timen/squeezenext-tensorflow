@@ -56,7 +56,13 @@ Please note one should still abide by the original License agreement of the Imag
 
 - Create a directory used for processing and storing the dataset.
     Please note you should have at least around 500 GB of free space available on the drive you are processing the dataset. 
-    Once this directory is created copy the 3 files downloaded earlier to the root of this directory.
+    Once this directory is created copy the 3 files downloaded earlier to the root of this directory from that directory execute
+    the following command:
+      ```Shell
+      export DATA_DIR=$(pwd)
+      
+      ```
+    
 
 - Execute the following command from this projects root folder:
   ```Shell
@@ -68,5 +74,25 @@ Please note one should still abide by the original License agreement of the Imag
 - Wait for processing to finish.
     The script process_downloaded_imagenet.sh will automatically extract the tarballs and process al the data into tf-records.
     The whole process can take between 2 and 5 hours depending on how fast the hard drive and cpu are.
-  
-  
+
+## Training:
+After installation and dataset preparation one only needs to execute the run_train.sh script to start training. By executing
+the following command from the projects root folder:
+
+```Shell
+bash run_train.sh
+```
+This will start training the 1.0 v1 version of squeezenext for 120 epochs with batch size 256. With a GTX1080Ti this training
+will take up to 4 days. If your gpu has a smaller memory capacity then a gtx1080ti you probably need to lower the batch size
+to be able to run the training. 
+
+## Modifying the hyper parameters:
+The batch size number of epochs and some other settings regarding epoch size, file location etc. can be passed as command 
+line arguments to the train.py script. Switching between specific configurations such as the grouped convolution and the non grouped
+convolution versions of squeezenext should be done by selecting which config file from the configs folder to use. This can be done
+by passing the file name without the .py as the command line argument --configuration. It is easy to add your own configuration just
+copy one of the other configs and rename the file to something new (keep in mind it will be imported in python so stick to numbers letters
+and under scores). You can then change the parameters in the file to customize your own config and pass the new file name as --configuration parameter.
+
+
+

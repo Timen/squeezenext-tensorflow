@@ -56,7 +56,7 @@ def grouped_convolution(inputs,
                 trainable=trainable,
                 scope=scope)
 
-    assert groups > 1, "Specify a number of groups greater than zero, groups given is {}".format(group_size)
+    assert groups > 1, "Specify a number of groups greater than zero, groups given is {}".format(groups)
     input_channels = inputs.get_shape().as_list()[-1]
     lowest_channels = min(input_channels, num_outputs)
     assert lowest_channels%groups == 0, "the remainder of min(input_channels,output_channels)/group_size should be zero"

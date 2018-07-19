@@ -12,8 +12,9 @@ def squeezenext_block(inputs, filters, stride,height_first_order, groups):
     shortcut = inputs
     # shorcut convolution
     if input_channels != filters or stride != 1:
-        shortcut = tfe.grouped_convolution(shortcut, filters, [1, 1], stride=stride,activation_fn=None)
-    # input 1x1 reduction conv
+        shortcut = tfe.grouped_convolution(shortcut, filters, [1, 1], stride=stride)
+
+    # input 1x1 reduction convolutions
     block = tfe.grouped_convolution(inputs, filters / 2, [1, 1], stride=stride, groups=groups)
     block = slim.conv2d(block, block.get_shape().as_list()[-1] / 2, [1, 1])
 
@@ -27,11 +28,11 @@ def squeezenext_block(inputs, filters, stride,height_first_order, groups):
         input_channels_seperated = block.get_shape().as_list()[-1]
         block = tfe.grouped_convolution(block, input_channels_seperated * 2, [1, 3], groups=groups)
         block = tfe.grouped_convolution(block, block.get_shape().as_list()[-1], [3, 1], groups=groups)
-    # switch order next block
+    # switch order next unit
     height_first_order = not height_first_order
 
     # output convolutions
-    block = slim.conv2d(block, block.get_shape().as_list()[-1] * 2, [1, 1],activation_fn=None)
+    block = slim.conv2d(block, block.get_shape().as_list()[-1] * 2, [1, 1])
     assert block.get_shape().as_list()[-1] == filters, "Block output channels not equal to number of specified filters"
 
 
@@ -41,11 +42,11 @@ def squeezenext_block(inputs, filters, stride,height_first_order, groups):
 class SqueezeNext(object):
     """Base class for building the SqueezeNext Model."""
 
-    def __init__(self, num_classes, block_defs, input_def,group_size):
+    def __init__(self, num_classes, block_defs, input_def,groups):
         self.num_classes = num_classes
         self.block_defs = block_defs
         self.input_def = input_def
-        self.group_size = group_size
+        self.groups = groups
 
 
     def __call__(self, inputs, training,height_first_order = True):
@@ -59,11 +60,17 @@ class SqueezeNext(object):
         Returns:
           A logits Tensor with shape [<batch_size>, self.num_classes].
         """
+
         with tf.variable_scope("squeezenext"):
-            # input convolution and pooling
             input_filters, input_kernel,input_stride = self.input_def
+            endpoints = {}
+
+            # input convolution and pooling
             net = slim.conv2d(inputs, input_filters, input_kernel, stride=input_stride,scope="input_conv",padding="VALID")
+            endpoints["input_conv"] = net
             net = slim.max_pool2d(net, [3, 3], stride=2)
+            endpoints["max_pool"] = net
+
             # create block based network
             for block_idx,block_def in enumerate(self.block_defs):
 
@@ -73,16 +80,22 @@ class SqueezeNext(object):
                     for unit_idx in range(0,units):
                         with tf.variable_scope("unit_{}".format(unit_idx)):
                             if unit_idx != 0:
-                                net,height_first_order = squeezenext_block(net,filters,1,height_first_order,self.group_size)
-                                continue
-
+                                # perform striding only in first unit of a block
+                                net,height_first_order = squeezenext_block(net,filters,1,height_first_order,self.groups)
                             else:
-                                net,height_first_order = squeezenext_block(net, filters, stride,height_first_order,self.group_size)
+                                net,height_first_order = squeezenext_block(net, filters, stride,height_first_order,self.groups)
+                        endpoints["block_{}".format(block_idx)+"/"+"unit_{}".format(unit_idx)]=net
             # output conv and pooling
             net = slim.conv2d(net, 128, [1,1],scope="output_conv")
-            net = tf.reduce_mean(net,axis=[1,2])
-            output = slim.fully_connected(net,self.num_classes,activation_fn=None, biases_initializer=None)
-        return output
+            endpoints["output_conv"] = net
+            net = tf.squeeze(slim.avg_pool2d(net,net.get_shape().as_list()[1:3],scope="avg_pool_out", padding="VALID"),axis=[1,2])
+            endpoints["avg_pool_out"] = net
+
+            # Fully connected output without biases
+            output = slim.fully_connected(net,self.num_classes,activation_fn=None,normalizer_fn=None, biases_initializer=None)
+            endpoints["output"] = output
+
+        return output,endpoints
 
 
 
@@ -97,7 +110,6 @@ def squeeze_next_arg_scope(is_training,
         'fused': True,
     }
 
-    # Set weight_decay for weights in Conv and DepthSepConv layers.
     weights_init = tf.contrib.layers.xavier_initializer()
     regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
     with slim.arg_scope([slim.conv2d,tfe.grouped_convolution],

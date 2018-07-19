@@ -2,8 +2,10 @@
 
 MODELS="/usr/local/share/models/"
 
-docker run -it -p 6006:6006  \
+docker run -it  \
 -v $(pwd):/usr/local/src/ \
 -v $MODELS:$MODELS \
 -v $DATA_DIR:$DATA_DIR \
-tensorflow/tensorflow python -m tensorboard.main --logdir=$MODELS
+tensorflow/tensorflow \
+bash -c "export DATA_DIR="$DATA_DIR"; bash"
+

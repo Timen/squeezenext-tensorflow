@@ -14,7 +14,7 @@ parser.add_argument('--configuration', type=str, default="v_1_0_SqNxt_23",
                     help='Name of model config file')
 parser.add_argument('--batch_size', type=int, default=64,
                     help='Batch size during training')
-parser.add_argument('--num_examples_per_epoch', type=int, default=1281160,
+parser.add_argument('--num_examples_per_epoch', type=int, default=1281167,
                     help='Number of examples in one epoch')
 parser.add_argument('--num_eval_examples', type=int, default=50000,
                     help='Number of examples in one eval epoch')
