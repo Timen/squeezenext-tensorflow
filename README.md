@@ -88,7 +88,9 @@ to be able to run the training.
 
 ## Modifying the hyper parameters:
 The batch size number of epochs and some other settings regarding epoch size, file location etc. can be passed as command 
-line arguments to the train.py script. Switching between specific configurations such as the grouped convolution and the non grouped
+line arguments to the train.py script. 
+
+Switching between specific configurations such as the grouped convolution and the non grouped
 convolution versions of squeezenext should be done by selecting which config file from the configs folder to use. This can be done
 by passing the file name without the .py as the command line argument --configuration. It is easy to add your own configuration just
 copy one of the other configs and rename the file to something new (keep in mind it will be imported in python so stick to numbers letters

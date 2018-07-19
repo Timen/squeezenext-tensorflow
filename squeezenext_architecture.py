@@ -7,27 +7,47 @@ slim = tf.contrib.slim
 import tensorflow_extentions as tfe
 
 
-def squeezenext_block(inputs, filters, stride,height_first_order, groups):
+def squeezenext_unit(inputs, filters, stride,height_first_order, groups):
+    """
+    Squeezenext unit according to:
+    https://arxiv.org/pdf/1803.10615.pdf
+
+    :param inputs:
+        Input tensor
+    :param filters:
+        Number of filters at output of this unit
+    :param stride:
+        Input stride
+    :param height_first_order:
+        Whether to first perform seperable convolution in the vertical direcation or horizontal direction
+    :param groups:
+        Number of groups for some of the convolutions (which ones are different from the paper but equal to:
+        https://github.com/amirgholami/SqueezeNext/blob/master/1.0-G-SqNxt-23/train_val.prototxt)
+    :return:
+        Output tensor, not(height_first_order)
+    """
     input_channels = inputs.get_shape().as_list()[-1]
     shortcut = inputs
-    # shorcut convolution
+
+    # shorcut convolution only to be executed if input channels is different from output channels or
+    # stride is greater than 1.
     if input_channels != filters or stride != 1:
-        shortcut = tfe.grouped_convolution(shortcut, filters, [1, 1], stride=stride)
+        shortcut = slim.conv2d(shortcut, filters, [1, 1], stride=stride)
 
     # input 1x1 reduction convolutions
-    block = tfe.grouped_convolution(inputs, filters / 2, [1, 1], stride=stride, groups=groups)
+    block = tfe.grouped_convolution(inputs, filters / 2, [1, 1], groups, stride=stride)
     block = slim.conv2d(block, block.get_shape().as_list()[-1] / 2, [1, 1])
 
     # seperable convolutions
     if height_first_order:
         input_channels_seperated = block.get_shape().as_list()[-1]
-        block = tfe.grouped_convolution(block, input_channels_seperated * 2, [3, 1], groups=groups)
-        block = tfe.grouped_convolution(block, block.get_shape().as_list()[-1], [1, 3], groups=groups)
+        block = tfe.grouped_convolution(block, input_channels_seperated * 2, [3, 1], groups)
+        block = tfe.grouped_convolution(block, block.get_shape().as_list()[-1], [1, 3], groups)
 
     else:
         input_channels_seperated = block.get_shape().as_list()[-1]
-        block = tfe.grouped_convolution(block, input_channels_seperated * 2, [1, 3], groups=groups)
-        block = tfe.grouped_convolution(block, block.get_shape().as_list()[-1], [3, 1], groups=groups)
+        block = tfe.grouped_convolution(block, input_channels_seperated * 2, [1, 3], groups)
+        block = tfe.grouped_convolution(block, block.get_shape().as_list()[-1], [3, 1], groups)
     # switch order next unit
     height_first_order = not height_first_order
 
@@ -81,9 +101,9 @@ class SqueezeNext(object):
                         with tf.variable_scope("unit_{}".format(unit_idx)):
                             if unit_idx != 0:
                                 # perform striding only in first unit of a block
-                                net,height_first_order = squeezenext_block(net,filters,1,height_first_order,self.groups)
+                                net,height_first_order = squeezenext_unit(net,filters,1,height_first_order,self.groups)
                             else:
-                                net,height_first_order = squeezenext_block(net, filters, stride,height_first_order,self.groups)
+                                net,height_first_order = squeezenext_unit(net, filters, stride,height_first_order,self.groups)
                         endpoints["block_{}".format(block_idx)+"/"+"unit_{}".format(unit_idx)]=net
             # output conv and pooling
             net = slim.conv2d(net, 128, [1,1],scope="output_conv")
@@ -101,6 +121,15 @@ class SqueezeNext(object):
 
 def squeeze_next_arg_scope(is_training,
                            weight_decay=0.0001):
+    """
+    Setup slim arg scope according to paper and github project
+    :param is_training:
+        Whether or not the network is training
+    :param weight_decay:
+        Weight decay of the convolutional layers
+    :return:
+        Slim arg scope
+    """
     batch_norm_params = {
         'is_training': is_training,
         'center': True,
@@ -110,12 +139,16 @@ def squeeze_next_arg_scope(is_training,
         'fused': True,
     }
 
+    # Use xavier an l2 decay
     weights_init = tf.contrib.layers.xavier_initializer()
     regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
+
+
     with slim.arg_scope([slim.conv2d,tfe.grouped_convolution],
                         weights_initializer=weights_init,
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params,
+                        # No biases in the convolutions (are already included in batch_norm)
                         biases_initializer=None,
                         weights_regularizer=regularizer):
         with slim.arg_scope([slim.batch_norm], **batch_norm_params) as sc:

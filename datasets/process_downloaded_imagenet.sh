@@ -50,6 +50,7 @@ BOUNDING_BOX_FILE="${OUTDIR}/imagenet_2012_bounding_boxes.csv"
 BOUNDING_BOX_DIR="${OUTDIR}bounding_boxes/"
 "${BOUNDING_BOX_SCRIPT}" "${BOUNDING_BOX_DIR}" "${LABELS_FILE}" \
  | sort >"${BOUNDING_BOX_FILE}"
+
 # Uncompress all images from the ImageNet 2012 validation dataset.
 VALIDATION_TARBALL="ILSVRC2012_img_val.tar"
 OUTPUT_PATH="${OUTDIR}validation/"

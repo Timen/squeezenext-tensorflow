@@ -20,6 +20,7 @@ class _ModelStats(tf.train.SessionRunHook):
         :param path:
             path to model dir
         :param batch_size:
+            batch size during training
         """
         self.scope_name = scope_name
         self.batch_size = batch_size
@@ -52,6 +53,7 @@ class _ModelStats(tf.train.SessionRunHook):
             # Check if type is considered for the param and macc calcualtion
             if not tensor.type in supported_stat_ops:
                 continue
+
             base_name = "/".join(name.split("/")[:-1])
 
             if name.endswith("weights"):
@@ -63,6 +65,7 @@ class _ModelStats(tf.train.SessionRunHook):
                 params = 1
                 for dim in sizes:
                     params = params * dim
+
                 if biases[base_name] is not None:
                     params = params + biases[base_name]
                 stat_dict[base_name]["params"] = params

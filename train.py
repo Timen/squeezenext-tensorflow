@@ -35,41 +35,61 @@ args = parser.parse_args()
 
 
 def main(argv):
+    """
+    Main function to start training
+    :param argv:
+        not used
+    :return:
+        None
+    """
     del argv  # not used
 
+    # calculate steps per epoch
     steps_per_epoch = (args.num_examples_per_epoch / args.batch_size)
+
+    # setup config dictionary
     config = configs[args.configuration]
     config["model_dir"] = args.model_dir
     config["output_train_images"] = args.output_train_images
     config["total_steps"] = args.num_epochs * steps_per_epoch
 
+    # init model class
     model = Model(config, args.batch_size)
 
+    # create classifier
     classifier = tf.estimator.Estimator(
         model_dir=args.model_dir,
         model_fn=model.model_fn,
         params=config)
     tf.logging.info("Total steps = {}, num_epochs = {}, batch size = {}".format(config["total_steps"], args.num_epochs,
                                                                                 args.batch_size))
-
+    # get last_step from checkpoint
     last_step = tools.get_checkpoint_step(args.model_dir)
+
+    # if no last step execute 1 train step
     if last_step is None:
         classifier.train(
             input_fn=lambda: model.input_fn(args.training_file_pattern,True),
             steps=1)
         last_step = 1
 
+    # perform steps_per_epoch*eval_every_n_epochs training steps between every evaluation
     for epochs in np.linspace(args.eval_every_n_epochs, args.num_epochs, num=args.num_epochs / args.eval_every_n_epochs,
                               endpoint=True):
         train_steps = int(epochs) * steps_per_epoch
+
+        # check if checkpoint is already beyond last step
         if train_steps < last_step:
             tf.logging.info(
                 "Skipping training iteration, checkpoint step further than train steps")
             continue
+        # perform eval
         classifier.evaluate(
             input_fn=lambda: model.input_fn(args.validation_file_pattern,False),
             steps=args.num_eval_examples / args.batch_size)
 
+
+        # run training
         tf.logging.info(
             "Running training from step = {} till step = {}".format(last_step, train_steps))
 
@@ -77,6 +97,8 @@ def main(argv):
         classifier.train(
             input_fn=lambda: model.input_fn(args.training_file_pattern,True),
             max_steps=train_steps)
+
+    # eval after training
     if args.eval_after_training:
         classifier.evaluate(
             input_fn=lambda: model.input_fn(args.validation_file_pattern,False),

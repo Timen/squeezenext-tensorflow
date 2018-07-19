@@ -15,6 +15,18 @@ class PolyOptimizer(object):
         self.momentum = 0.9
 
     def optimize(self,loss, training,total_steps):
+        """
+        Momentum optimizer using a polynomial decay and a warmup phas to match this
+        prototxt: https://github.com/amirgholami/SqueezeNext/blob/master/1.0-SqNxt-23/solver.prototxt
+        :param loss:
+            Loss value scalar
+        :param training:
+            Whether or not the model is training used to prevent updating moving mean of batch norm during eval
+        :param total_steps:
+            Total steps of the model used in the polynomial decay
+        :return:
+            Train op created with slim.learning.create_train_op
+        """
         with tf.name_scope("PolyOptimizer"):
             global_step = tools.get_or_create_global_step()
 
