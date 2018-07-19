@@ -15,7 +15,7 @@ fi
 
 PYTHONPATH="./" python train.py \
 --model_dir $TRAIN_DIR \
---configuration "v_1_0_G_SqNxt_23" \
+--configuration "v_1_0_SqNxt_23" \
 --batch_size 256 \
 --num_epochs 120 \
 --training_file_pattern $DATA_DIR"train-*" \
