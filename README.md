@@ -94,7 +94,7 @@ Switching between specific configurations such as the grouped convolution and th
 convolution versions of squeezenext should be done by selecting which config file from the configs folder to use. This can be done
 by passing the file name without the .py as the command line argument --configuration. It is easy to add your own configuration just
 copy one of the other configs and rename the file to something new (keep in mind it will be imported in python so stick to numbers letters
-and under scores). You can then change the parameters in the file to customize your own config and pass the new file name as --configuration parameter.
+and under scores). You can then change the parameters in the file to customize your own config and pass the new file name as --configuration parameter.(the python scripts in configs are automatically imported)
 
 
 

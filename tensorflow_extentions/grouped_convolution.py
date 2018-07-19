@@ -42,6 +42,7 @@ def grouped_convolution2D(inputs, filters, padding, num_groups,
         ))
     # Concatenate ouptputs along there last dimentsion
     outputs = tf.concat(output_list, axis=-1)
+
     return outputs
 
 
@@ -141,18 +142,17 @@ def grouped_convolution(inputs,
     # check if the number of groups and corresponding group_size is an integer division of the input and output channels
     lowest_channels = min(input_channels, num_outputs)
     assert lowest_channels % groups == 0, "the remainder of min(input_channels,output_channels)/groups should be zero"
-    group_size = lowest_channels / groups
     assert max(input_channels,
-               num_outputs) % group_size == 0, "the remainder of max(input_channels,output_channels)/group_size=({}) " \
+               num_outputs) % groups == 0, "the remainder of max(input_channels,output_channels)/groups=({}) " \
                                                "should be zero".format(
-        group_size)
+        groups)
 
     with tf.variable_scope(scope, 'Group_Conv', [inputs], reuse=reuse) as sc:
         # define weight shape
         if isinstance(kernel_size, collections.Iterable):
-            weights_shape = list(kernel_size) + [group_size] + [num_outputs]
+            weights_shape = list(kernel_size) + [input_channels/groups] + [num_outputs]
         else:
-            weights_shape = [kernel_size, kernel_size, group_size, num_outputs]
+            weights_shape = [kernel_size, kernel_size, input_channels/groups, num_outputs]
 
         # create weights variable
         weights = slim.variable('weights',
