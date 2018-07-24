@@ -21,6 +21,20 @@ This repository contains a tensorflow implementation of SqueezeNext, a hardware-
       biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1803-10615},
       bibsource = {dblp computer science bibliography, https://dblp.org}
     }
+## Pretrained model:
+Using the data from the paper, original caffe version on github and other sources I tried to recreate the 1.0-SqueezeNext-23 model as closely as possible. The model
+achieved a 55% top 1 accuracy on validation set and a 79% top 5 accuracy on the validation set. This is about 3% under the reported results. Causes for this
+could be that the network was trained with a batch size of 256 instead of 1024, and because of the the number of steps required for 120 epochs increased 4 fold.
+The learning rate schedule was modified to account for the lower batch size and the increased number of steps.  
+
+Another change was the removal of an output activation functions of the last convolution in a unit, and of the optional convolution in the shortcuts. The original model implemented in caffe
+still had these but also had a relu after adding the residual and the network (which was redundant). Instead the original resnet structure was followed and the relu was applied only
+after adding the residual and the network.  
+
+These changes (reflected in the v_1_0_SqNxt_23_mod config) might be the reason for the decreased the final validation accuracy, but due to the fact that one training session takes 4 days on a gtx1080ti only this modified version
+was trained and can be downloaded from here [v_1_0_SqNxt_23_mod](https://drive.google.com/open?id=1zOjSQR5KLHZyd7Y-VuJBNVw7K0_8UyOk).
+
+
     
 ## Installation:
 This implementation was made using version 1.8 of the tensorflow api. Earlier versions are untested, and may not work due to the
