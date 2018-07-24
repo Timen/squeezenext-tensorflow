@@ -61,7 +61,7 @@ class Model(object):
 
         training = mode == tf.estimator.ModeKeys.TRAIN
         # init model class
-        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"], params["groups"])
+        model = squeezenext.SqueezeNext(self.num_classes, params["block_defs"], params["input_def"], params["groups"],params["seperate_relus"])
         # create model inside the argscope of the model
         with slim.arg_scope(squeezenext.squeeze_next_arg_scope(training)):
             predictions,endpoints = model(features["image"], training)

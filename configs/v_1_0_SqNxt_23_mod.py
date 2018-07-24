@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
+# Some parameters will be divided or multiplied by 4 to compensate for the reduced batch size
+# as the original used batch size 1024 and the gtx1080ti can only fit a batch size 256.
+
 training_params = {
     # the base learning rate used in the polynomial decay
-    "base_lr":0.4,
+    "base_lr":0.4/4.0,
 
     # how many steps to warmup the learning rate for
-    "warmup_iter":780,
+    "warmup_iter":780*4,
 
     # What learning rate to start with in the warmup phase (ramps up to base_lr)
-    "warmup_start_lr":0.1,
+    "warmup_start_lr":0.1/4.0,
 
     #input size
     "image_size":227,
@@ -27,5 +30,5 @@ training_params = {
     "groups": 1,
 
     # Whether to do relu before addition of the network and the residual
-    "seperate_relus": 1
+    "seperate_relus": 0
 }

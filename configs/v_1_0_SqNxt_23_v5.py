@@ -8,7 +8,7 @@ training_params = {
     "base_lr":0.4,
 
     # how many steps to warmup the learning rate for
-    "warmup_iter":780*4,
+    "warmup_iter":780,
 
     # What learning rate to start with in the warmup phase (ramps up to base_lr)
     "warmup_start_lr":0.1,
@@ -27,5 +27,8 @@ training_params = {
     "num_classes":1000,
 
     # How many groups to use for the grouped convolutions
-    "groups": 1
+    "groups": 1,
+
+    # Whether to do relu before addition of the network and the residual
+    "seperate_relus": 1
 }

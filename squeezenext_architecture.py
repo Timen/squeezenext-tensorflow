@@ -7,7 +7,7 @@ slim = tf.contrib.slim
 import tensorflow_extentions as tfe
 
 
-def squeezenext_unit(inputs, filters, stride,height_first_order, groups):
+def squeezenext_unit(inputs, filters, stride,height_first_order, groups,seperate_relus):
     """
     Squeezenext unit according to:
     https://arxiv.org/pdf/1803.10615.pdf
@@ -28,11 +28,11 @@ def squeezenext_unit(inputs, filters, stride,height_first_order, groups):
     """
     input_channels = inputs.get_shape().as_list()[-1]
     shortcut = inputs
-
+    out_activation = tf.nn.relu if seperate_relus else None
     # shorcut convolution only to be executed if input channels is different from output channels or
     # stride is greater than 1.
     if input_channels != filters or stride != 1:
-        shortcut = slim.conv2d(shortcut, filters, [1, 1], stride=stride)
+        shortcut = slim.conv2d(shortcut, filters, [1, 1], stride=stride, activation_fn=out_activation)
 
     # input 1x1 reduction convolutions
     block = tfe.grouped_convolution(inputs, filters / 2, [1, 1], groups, stride=stride)
@@ -52,7 +52,7 @@ def squeezenext_unit(inputs, filters, stride,height_first_order, groups):
     height_first_order = not height_first_order
 
     # output convolutions
-    block = slim.conv2d(block, block.get_shape().as_list()[-1] * 2, [1, 1])
+    block = slim.conv2d(block, block.get_shape().as_list()[-1] * 2, [1, 1],activation_fn=out_activation)
     assert block.get_shape().as_list()[-1] == filters, "Block output channels not equal to number of specified filters"
 
 
@@ -62,11 +62,12 @@ def squeezenext_unit(inputs, filters, stride,height_first_order, groups):
 class SqueezeNext(object):
     """Base class for building the SqueezeNext Model."""
 
-    def __init__(self, num_classes, block_defs, input_def,groups):
+    def __init__(self, num_classes, block_defs, input_def,groups,seperate_relus):
         self.num_classes = num_classes
         self.block_defs = block_defs
         self.input_def = input_def
         self.groups = groups
+        self.seperate_relus = seperate_relus
 
 
     def __call__(self, inputs, training,height_first_order = True):
@@ -101,9 +102,9 @@ class SqueezeNext(object):
                         with tf.variable_scope("unit_{}".format(unit_idx)):
                             if unit_idx != 0:
                                 # perform striding only in first unit of a block
-                                net,height_first_order = squeezenext_unit(net,filters,1,height_first_order,self.groups)
+                                net,height_first_order = squeezenext_unit(net,filters,1,height_first_order,self.groups,self.seperate_relus)
                             else:
-                                net,height_first_order = squeezenext_unit(net, filters, stride,height_first_order,self.groups)
+                                net,height_first_order = squeezenext_unit(net, filters, stride,height_first_order,self.groups,self.seperate_relus)
                         endpoints["block_{}".format(block_idx)+"/"+"unit_{}".format(unit_idx)]=net
             # output conv and pooling
             net = slim.conv2d(net, 128, [1,1],scope="output_conv")
