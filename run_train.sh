@@ -12,7 +12,7 @@ if [[ ! -e $TRAIN_DIR ]]; then
 elif [[ ! -d $TRAIN_DIR ]]; then
     echo "Model dir $TRAIN_DIR already exists but is not a directory" 1>&2
 fi
-TRAIN_DIR="/usr/local/share/models/2018-07-17_17-49_2/"
+
 PYTHONPATH="./" python train.py \
 --model_dir $TRAIN_DIR \
 --configuration "v_1_0_SqNxt_23_mod" \

@@ -100,6 +100,17 @@ This will start training the 1.0 v1 version of squeezenext for 120 epochs with b
 will take up to 4 days. If your gpu has a smaller memory capacity then a gtx1080ti you probably need to lower the batch size
 to be able to run the training. 
 
+
+## Prediction:
+Prediction is done using the predict.py script, to run it you give it a path to a jpeg image and pass the directory containing
+a trained model in the model_dir argument.
+
+```Shell
+python predict.py ./tabby_cat.jpg --model_dir ?TRAIN_DIR from the run_train.sh or pretrained model directory?
+```
+
+This script will load the image and run the classifier on it, the output is the top 5 human readable class labels.
+
 ## Modifying the hyper parameters:
 The batch size number of epochs and some other settings regarding epoch size, file location etc. can be passed as command 
 line arguments to the train.py script. 
