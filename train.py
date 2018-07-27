@@ -7,7 +7,7 @@ import numpy as np
 import tools
 tf.logging.set_verbosity(tf.logging.INFO)
 
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='Training parser')
 parser.add_argument('--model_dir', type=str, required=True,
                     help='Location of model_dir')
 parser.add_argument('--configuration', type=str, default="v_1_0_SqNxt_23",

@@ -68,9 +68,11 @@ class Model(object):
 
         # output predictions
         if mode == tf.estimator.ModeKeys.PREDICT:
+            _,top_5 =  tf.nn.top_k(predictions,k=5)
             predictions = {
-                'class_ids': tf.argmax(tf.nn.softmax(predictions), -1),
-                'probabilities': tf.nn.softmax(predictions),
+                'top_1': tf.argmax(predictions, -1),
+                'top_5': top_5,
+                 'probabilities': tf.nn.softmax(predictions),
                 'logits': predictions,
             }
             return tf.estimator.EstimatorSpec(mode, predictions=predictions)
