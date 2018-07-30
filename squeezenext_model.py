@@ -42,7 +42,7 @@ class Model(object):
         :return:
             Input generator
         """
-        return self.define_batch_size(*self.read_tf_records(file_pattern,training=training).get_next())
+        return self.define_batch_size(*self.read_tf_records(file_pattern,training=training))
 
     def model_fn(self, features, labels, mode, params):
         """
@@ -93,10 +93,14 @@ class Model(object):
             if params["output_train_images"]:
                 tf.summary.image("training", features["image"])
 
+            # setup fine tune scaffold
+            scaffold = tf.train.Scaffold(init_op=None,
+                                         init_fn=tools.fine_tune.init_weights("squeezenext", params["fine_tune_ckpt"]))
+
             # create estimator training spec, which also outputs the model_stats of the model to params["model_dir"]
             return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, training_hooks=[
                 tools.stats._ModelStats("squeezenext", params["model_dir"],
-                                        features["image"].get_shape().as_list()[0])])
+                                        features["image"].get_shape().as_list()[0])],scaffold=scaffold)
 
 
 

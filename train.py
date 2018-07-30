@@ -24,10 +24,12 @@ parser.add_argument('--training_file_pattern', type=str, required=True,
                     help='Glob for training tf records')
 parser.add_argument('--validation_file_pattern', type=str, required=True,
                     help='Glob for validation tf records')
-parser.add_argument('--eval_every_n_epochs', type=int, default=1,
-                    help='Run eval every N epochs')
+parser.add_argument('--eval_every_n_secs', type=int, default=1800,
+                    help='Run eval every N seconds, default is every half hour')
 parser.add_argument('--output_train_images', type=bool, default=True,
                     help='Whether to save image summary during training (Warning: can lead to large event file sizes).')
+parser.add_argument('--fine_tune_ckpt', type=str, default=None,
+                    help='Ckpt used for initializing the variables')
 args = parser.parse_args()
 
 
@@ -49,7 +51,8 @@ def main(argv):
     config["model_dir"] = args.model_dir
     config["output_train_images"] = args.output_train_images
     config["total_steps"] = args.num_epochs * steps_per_epoch
-
+    config["model_dir"] = args.model_dir
+    config["fine_tune_ckpt"] = args.fine_tune_ckpt
     # init model class
     model = Model(config, args.batch_size)
 
@@ -60,30 +63,24 @@ def main(argv):
         params=config)
     tf.logging.info("Total steps = {}, num_epochs = {}, batch size = {}".format(config["total_steps"], args.num_epochs,
                                                                                 args.batch_size))
-    # get last_step from checkpoint
-    last_step = tools.get_checkpoint_step(args.model_dir)
 
-    # perform steps_per_epoch*eval_every_n_epochs training steps between every evaluation
-    for epochs in np.linspace(args.eval_every_n_epochs, args.num_epochs, num=args.num_epochs / args.eval_every_n_epochs,
-                              endpoint=True):
-        train_steps = int(epochs) * steps_per_epoch
+    # setup train spec
+    train_spec = tf.estimator.TrainSpec(input_fn=lambda: model.input_fn(args.training_file_pattern, True),
+                                        max_steps=config["total_steps"])
 
-        # check if checkpoint is already beyond last step
-        if train_steps < last_step:
-            tf.logging.info(
-                "Skipping training iteration, checkpoint step further than train steps")
-            continue
+    # setup eval spec evaluating ever n seconds
+    eval_spec = tf.estimator.EvalSpec(
+        input_fn=lambda: model.input_fn(args.validation_file_pattern, False),
+        steps=args.num_eval_examples / args.batch_size,
+        throttle_secs=args.eval_every_n_secs)
 
-        # run training
-        tf.logging.info(
-            "Running training from step = {} till step = {}".format(last_step, train_steps))
+    # run train and evaluate
+    tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 
-        train_spec = tf.estimator.TrainSpec(input_fn=lambda: model.input_fn(args.training_file_pattern,True), max_steps=1000)
-        eval_spec = tf.estimator.EvalSpec(
-            input_fn=lambda: model.input_fn(args.validation_file_pattern,False),
-            steps=args.num_eval_examples / args.batch_size)
+    classifier.evaluate(input_fn=lambda: model.input_fn(args.validation_file_pattern, False),
+        steps=args.num_eval_examples / args.batch_size)
 
-        tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
+
 
 
 if __name__ == '__main__':

@@ -125,4 +125,4 @@ class ReadTFRecords(object):
             #prefetch batch
             dataset = dataset.prefetch(buffer_size=self.batch_size)
 
-            return dataset.make_one_shot_iterator()
+            return dataset.make_one_shot_iterator().get_next()
