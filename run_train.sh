@@ -18,5 +18,5 @@ PYTHONPATH="./" python train.py \
 --configuration "v_1_0_SqNxt_23_mod" \
 --batch_size 256 \
 --num_epochs 120 \
---training_file_pattern $DATA_DIR"/train-*" \
---validation_file_pattern $DATA_DIR"/validation-*"
+--training_file_pattern $DATA_DIR"train-*" \
+--validation_file_pattern $DATA_DIR"validation-*"

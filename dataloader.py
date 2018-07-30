@@ -97,7 +97,7 @@ class ReadTFRecords(object):
         """
         Read tf records matching a glob pattern
         :param glob_pattern:
-            glob patter eg. "/usr/local/share/Datasets/Imagenet/train-*.tfrecords"
+            glob pattern eg. "/usr/local/share/Datasets/Imagenet/train-*.tfrecords"
         :param training:
             Whether or not to shuffle the data for training and evaluation
         :return:
@@ -110,19 +110,19 @@ class ReadTFRecords(object):
 
             # parallel fetch tfrecords dataset using the file list in parallel
             dataset = files.apply(tf.contrib.data.parallel_interleave(
-                lambda filename: tf.data.TFRecordDataset(filename), cycle_length=threads*2))
+                lambda filename: tf.data.TFRecordDataset(filename), cycle_length=threads))
 
             # shuffle and repeat examples for better randomness and allow training beyond one epoch
             dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(32*self.batch_size))
 
             # map the parse  function to each example individually in threads*2 parallel calls
             dataset = dataset.map(map_func=lambda example: _parse_function(example, self.image_size, self.num_classes,training=training),
-                                  num_parallel_calls=threads * 2)
+                                  num_parallel_calls=threads)
 
             # batch the examples
             dataset = dataset.batch(batch_size=self.batch_size)
 
-            #prefetch 4 batches
-            dataset = dataset.prefetch(buffer_size=self.batch_size*4)
+            #prefetch batch
+            dataset = dataset.prefetch(buffer_size=self.batch_size)
 
             return dataset.make_one_shot_iterator()
