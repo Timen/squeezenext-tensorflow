@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 training_params = {
     # the base learning rate used in the polynomial decay
-    "base_lr":0.4,
+    "base_lr":0.1,
 
     # how many steps to warmup the learning rate for
-    "warmup_iter":780,
+    "warmup_iter":3120,
 
     # What learning rate to start with in the warmup phase (ramps up to base_lr)
-    "warmup_start_lr":0.1,
+    "warmup_start_lr":0.025,
 
     #input size
     "image_size":227,

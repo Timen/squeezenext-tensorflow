@@ -28,7 +28,7 @@ def squeezenext_unit(inputs, filters, stride,height_first_order, groups,seperate
     """
     input_channels = inputs.get_shape().as_list()[-1]
     shortcut = inputs
-    out_activation = tf.nn.relu if seperate_relus else None
+    out_activation = tf.nn.relu if bool(seperate_relus) else None
     # shorcut convolution only to be executed if input channels is different from output channels or
     # stride is greater than 1.
     if input_channels != filters or stride != 1:

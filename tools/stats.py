@@ -9,7 +9,7 @@ supported_stat_ops = "Conv2D, MatMul, VariableV2, MaxPool,AvgPool,Add"
 exclude_in_name = ["gradients", "Initializer", "Regularizer", "AssignMovingAvg", "Momentum", "BatchNorm"]
 
 
-class _ModelStats(tf.train.SessionRunHook):
+class ModelStats(tf.train.SessionRunHook):
     """Logs model stats to a csv."""
 
     def __init__(self, scope_name, path,batch_size):
@@ -25,8 +25,10 @@ class _ModelStats(tf.train.SessionRunHook):
         self.scope_name = scope_name
         self.batch_size = batch_size
         self.path = path
+        self.inc_bef =0
+        self.inc_after = 0
 
-    def after_create_session(self, session, coord):
+    def begin(self):
         """
             Method to output statistics of the model to an easy to read csv, listing the multiply accumulates(maccs) and
             number of parameters, in the model dir.
@@ -35,11 +37,9 @@ class _ModelStats(tf.train.SessionRunHook):
         :param coord:
             unused
         """
-
         # get graph and operations
         graph = tf.get_default_graph()
         operations = graph.get_operations()
-
         # setup dictionaries
         biases = defaultdict(lambda: None)
         stat_dict = defaultdict(lambda: {"params":0,"maccs":0,"adds":0, "comps":0})

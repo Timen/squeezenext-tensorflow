@@ -92,15 +92,13 @@ class Model(object):
             # if params["output_train_images"] is true output images during training
             if params["output_train_images"]:
                 tf.summary.image("training", features["image"])
-
+            stats_hook = tools.stats.ModelStats("squeezenext", params["model_dir"],self.batch_size)
             # setup fine tune scaffold
             scaffold = tf.train.Scaffold(init_op=None,
                                          init_fn=tools.fine_tune.init_weights("squeezenext", params["fine_tune_ckpt"]))
 
             # create estimator training spec, which also outputs the model_stats of the model to params["model_dir"]
-            return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, training_hooks=[
-                tools.stats._ModelStats("squeezenext", params["model_dir"],
-                                        features["image"].get_shape().as_list()[0])],scaffold=scaffold)
+            return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op, training_hooks=[stats_hook],scaffold=scaffold)
 
 
 

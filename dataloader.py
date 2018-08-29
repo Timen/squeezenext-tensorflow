@@ -123,6 +123,6 @@ class ReadTFRecords(object):
             dataset = dataset.batch(batch_size=self.batch_size)
 
             #prefetch batch
-            dataset = dataset.prefetch(buffer_size=self.batch_size)
+            dataset = dataset.prefetch(buffer_size=32)
 
             return dataset.make_one_shot_iterator().get_next()

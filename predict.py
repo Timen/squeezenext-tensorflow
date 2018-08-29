@@ -67,7 +67,6 @@ def main(argv):
     image = np.expand_dims(np.array(mean_sub), 0)
     my_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"image": image},
-        queue_capacity=1,
         shuffle=False,
         batch_size=1)
 
@@ -77,16 +76,16 @@ def main(argv):
                          tf.gfile.FastGFile(args.labels_file, 'r').readlines()]
 
     # perform prediction
-    result = classifier.predict(input_fn=my_input_fn)
+    predictions = classifier.predict(input_fn=my_input_fn)
 
     # Print top 5 results
-    for res in result:
+    for result in predictions:
         print("top 5: \n 1: {} \n 2: {} \n 3: {} \n 4: {} \n 5: {} \n".format(
-            lookup_human_readable(res["top_5"][0], challenge_synsets, lookup_table),
-            lookup_human_readable(res["top_5"][1], challenge_synsets, lookup_table),
-            lookup_human_readable(res["top_5"][2], challenge_synsets, lookup_table),
-            lookup_human_readable(res["top_5"][3], challenge_synsets, lookup_table),
-            lookup_human_readable(res["top_5"][4], challenge_synsets, lookup_table)
+            lookup_human_readable(result["top_5"][0], challenge_synsets, lookup_table),
+            lookup_human_readable(result["top_5"][1], challenge_synsets, lookup_table),
+            lookup_human_readable(result["top_5"][2], challenge_synsets, lookup_table),
+            lookup_human_readable(result["top_5"][3], challenge_synsets, lookup_table),
+            lookup_human_readable(result["top_5"][4], challenge_synsets, lookup_table)
         ))
 
 
