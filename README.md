@@ -30,6 +30,7 @@ The learning rate schedule was modified to account for the lower batch size and 
 This configuration (stored in the v_1_0_SqNxt_23 config) can be downloaded from here [v_1_0_SqNxt_23_mod](https://drive.google.com/file/d/1FsNIrUSo-m8Td20Xk6N13RICcACqsU9L/view?usp=sharing).
 
 
+
     
 ## Installation:
 This implementation was made using version 1.8 of the tensorflow api. Earlier versions are untested, and may not work due to the
