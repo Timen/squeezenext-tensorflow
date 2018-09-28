@@ -1,5 +1,5 @@
 ## _SqueezeNext Tensorflow:_ A tensorflow Implementation of SqueezeNext 
-This repository contains a tensorflow implementation of SqueezeNext, a hardware-aware neural network design.
+This repository contains an unofficial tensorflow implementation of SqueezeNext, a hardware-aware neural network design.
 
     @article{DBLP:journals/corr/abs-1803-10615,
       author    = {Amir Gholami and
