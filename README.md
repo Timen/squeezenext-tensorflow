@@ -34,12 +34,11 @@ This configuration (stored in the v_1_0_SqNxt_23 config) can be downloaded from 
     
 ## Installation:
 This implementation was made using version 1.8 of the tensorflow api. Earlier versions are untested, and may not work due to the
-use of some recently added functions for data loading and processing. 
+use of some recently added functions for data loading and processing. The code was made for python 2.7.
 
 - Make sure tensorflow 1.8 or higher is by running:
     ```Shell
     python -c 'import tensorflow as tf; print(tf.__version__)'  # for Python 2
-    python3 -c 'import tensorflow as tf; print(tf.__version__)'  # for Python 3
      ```
   And verifying the output is 1.8.0 or above.
   
