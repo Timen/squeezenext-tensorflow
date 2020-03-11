@@ -51,7 +51,6 @@ def main(argv):
     config["model_dir"] = args.model_dir
     config["output_train_images"] = args.output_train_images
     config["total_steps"] = args.num_epochs * steps_per_epoch
-    config["model_dir"] = args.model_dir
     config["fine_tune_ckpt"] = args.fine_tune_ckpt
     # init model class
     model = Model(config, args.batch_size)
